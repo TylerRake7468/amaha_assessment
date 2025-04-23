@@ -3,8 +3,11 @@ class CustomersController < ApplicationController
     file = params[:file]
     return render json: { error: 'File is missing' }, status: :bad_request unless file
 
-    customers = Customers::FilterService.new(file).process_file
+    result = Customers::FilterService.new(file).process_file
 
-    render json: customers, status: :ok
+    render json: {
+      customers: result[:matching_customers],
+      errors: result[:errors]
+    }, status: :ok
   end
 end

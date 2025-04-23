@@ -10,27 +10,35 @@ module Customers
 
     def process_file
       matching_customers = []
-      File.foreach(@file.path) do |line|
-        data = JSON.parse(line)
-        lat = data["latitude"].to_f
-        lng = data["longitude"].to_f
+      errors = []
 
-        distance = GeoDistance.haversine(MUMBAI_LAT, MUMBAI_LNG, lat, lng)
+      File.foreach(@file.path).with_index(1) do |line, index|
+        begin
+          data = JSON.parse(line)
+          lat = data["latitude"].to_f
+          lng = data["longitude"].to_f
+          distance = GeoDistance.haversine(MUMBAI_LAT, MUMBAI_LNG, lat, lng)
 
-        customer = Customer.find_or_initialize_by(user_id: data["user_id"])
-        customer.update!(
-          name: data["name"],
-          latitude: lat,
-          longitude: lng,
-          distance: distance
-        )
+          customer = Customer.create!(
+            user_id: data["user_id"],
+            name: data["name"],
+            latitude: lat,
+            longitude: lng,
+            distance: distance
+          )
 
-        if distance <= MAX_DISTANCE_KM
-          matching_customers << { user_id: customer.user_id, name: customer.name }
+          if distance <= MAX_DISTANCE_KM
+            matching_customers << { user_id: customer.user_id, name: customer.name }
+          end
+
+        rescue JSON::ParserError => e
+          errors << "Line #{index}: Invalid JSON format"
+        rescue ActiveRecord::RecordInvalid => e
+          errors << "Line #{index}: #{e.record.errors.full_messages.join(', ')}"
         end
       end
 
-      matching_customers.sort_by { |c| c[:user_id] }
+      { matching_customers: matching_customers.sort_by { |c| c[:user_id] }, errors: errors }
     end
   end
 end
