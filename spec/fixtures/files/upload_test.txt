@@ -1,0 +1,2 @@
+{"user_id": 1, "name": "Valid User", "latitude": "19.0580", "longitude": "72.7540"}
+{sm,gnks vskl skl kf}
